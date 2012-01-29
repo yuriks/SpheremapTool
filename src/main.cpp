@@ -160,14 +160,19 @@ int main(int argc, char* argv[]) {
 		while (!input_params.empty()) {
 			std::string opt = pop_from(input_params);
 
-			if (opt == "-") {
-				std::copy(input_params.rbegin(), input_params.rend(), std::back_inserter(positional_params));
-				break;
-			} else if (opt == "-size") {
-				output_size = std::stoi(pop_from(input_params));
-			} else if (opt == "-h" || opt == "-help") {
-				printProgramUsage();
-				return 0;
+			if (!opt.empty() && opt[0] == '-') {
+				if (opt == "-") {
+					std::copy(input_params.rbegin(), input_params.rend(), std::back_inserter(positional_params));
+					break;
+				} else if (opt == "-size") {
+					output_size = std::stoi(pop_from(input_params));
+				} else if (opt == "-h" || opt == "-help") {
+					printProgramUsage();
+					return 0;
+				} else {
+					std::cerr << "Unknown option " << opt << ". Try -help.\n";
+					return 1;
+				}
 			} else {
 				positional_params.push_back(opt);
 			}
