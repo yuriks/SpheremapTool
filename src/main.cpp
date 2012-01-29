@@ -123,33 +123,59 @@ int main(int argc, char* argv[]) {
 	std::string output_fname = fname_prefix + "_spheremap.bmp";
 
 	std::vector<u32> out_data(output_size * output_size);
+	float output_pixel_size = 1.f / output_size;
 
 	{
 		Cubemap input_cubemap(fname_prefix, fname_extension);
 
 		for (int y = 0; y < output_size; ++y) {
 			for (int x = 0; x < output_size; ++x) {
-				float s = unlerp(x, output_size);
-				float t = unlerp(y, output_size);
+				static const int NUM_SAMPLES = 5;
+				static const float sample_offsets[NUM_SAMPLES*2] = {
+					0.0f   , 0.0f   ,
+					-.1875f, -.375f ,
+					0.375f , -.1875f,
+					0.1875f, 0.375f ,
+					-.375f , 0.1875f,
+				};
 
-				float vx, vy, vz;
-				float rev_p = 16.0f * (s - s*s + t - t*t) - 4.0f;
-				if (rev_p < 0.0f) {
-					vx = 0.0f;
-					vy = 0.0f;
-					vz = -1.0f;
-				} else {
-					float rev_p_sqrt = std::sqrtf(rev_p);
-					vx = rev_p_sqrt * (2.0f * s - 1.0f);
-					vy = rev_p_sqrt * -(2.0f * t - 1.0f);
-					vz = 8.0f * (s - s*s + t - t*t) - 3.0f;
+				float center_s = unlerp(x, output_size);
+				float center_t = unlerp(y, output_size);
+
+				u32 r = 0, g = 0, b = 0;
+
+				for (int sample = 0; sample < NUM_SAMPLES; ++sample) {
+					float s = center_s + sample_offsets[sample*2 + 0] * output_pixel_size;
+					float t = center_t + sample_offsets[sample*2 + 1] * output_pixel_size;
+
+					float vx, vy, vz;
+					float rev_p = 16.0f * (s - s*s + t - t*t) - 4.0f;
+					if (rev_p < 0.0f) {
+						vx = 0.0f;
+						vy = 0.0f;
+						vz = -1.0f;
+					} else {
+						float rev_p_sqrt = std::sqrtf(rev_p);
+						vx = rev_p_sqrt * (2.0f * s - 1.0f);
+						vy = rev_p_sqrt * -(2.0f * t - 1.0f);
+						vz = 8.0f * (s - s*s + t - t*t) - 3.0f;
+					}
+
+					Cubemap::CubeFace cube_face;
+					float tex_s, tex_t;
+					input_cubemap.computeTexCoords(vx, vy, vz, cube_face, tex_s, tex_t);
+					u32 sample_color = input_cubemap.sampleFace(cube_face, tex_s, tex_t);
+
+					r += sample_color >> 0  & 0xFF;
+					g += sample_color >> 8  & 0xFF;
+					b += sample_color >> 16 & 0xFF;
 				}
 
-				Cubemap::CubeFace cube_face;
-				float tex_s, tex_t;
-				input_cubemap.computeTexCoords(vx, vy, vz, cube_face, tex_s, tex_t);
+				r /= NUM_SAMPLES;
+				g /= NUM_SAMPLES;
+				b /= NUM_SAMPLES;
 
-				out_data[y * output_size + x] = input_cubemap.sampleFace(cube_face, tex_s, tex_t);
+				out_data[y * output_size + x] = r | g << 8 | b << 16 | 0xFF << 24;
 			}
 		}
 	}
