@@ -141,7 +141,7 @@ void printProgramUsage() {
 		"  SpheremapTool [opts] [-] input_prefix input_extension\n"
 		"\n"
 		"Available options:\n"
-		"  -aa 1|5          Specify number of AA samples. (Default: 1)\n"
+		"  -aa 1|5|16       Specify number of AA samples. (Default: 1)\n"
 		"  -size <int>      Specifies output image size. (Default: 1024)\n"
 		"  -o <filename>    Manually specifies output file. (Default: \"<input_prefix>_spheremap.bmp\")\n"
 		"  -h / -help       Print this help text.\n"
@@ -155,6 +155,28 @@ static const float aa_pattern_5x[] = {
 	0.375f , -.1875f,
 	0.1875f, 0.375f ,
 	-.375f , 0.1875f,
+};
+
+static const float aa_pattern_16x[] = {
+	-.375, -.375,
+	-.375, -.175,
+	-.375, 0.175,
+	-.375, 0.375,
+
+	-.175, -.375,
+	-.175, -.175,
+	-.175, 0.175,
+	-.175, 0.375,
+
+	0.125, -.375,
+	0.125, -.175,
+	0.125, 0.175,
+	0.125, 0.375,
+
+	0.375, -.375,
+	0.375, -.175,
+	0.375, 0.175,
+	0.375, 0.375,
 };
 
 int main(int argc, char* argv[]) {
@@ -186,6 +208,8 @@ int main(int argc, char* argv[]) {
 						aa_sample_pattern = aa_pattern_none; break;
 					case 5:
 						aa_sample_pattern = aa_pattern_5x; break;
+					case 16:
+						aa_sample_pattern = aa_pattern_16x; break;
 					default:
 						std::cerr << "Invalid AA sample pattern.\n";
 						return 1;
