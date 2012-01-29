@@ -140,8 +140,8 @@ void printProgramUsage() {
 		"  SpheremapTool [opts] [-] input_prefix input_extension\n"
 		"\n"
 		"Available options:\n"
-		"  -size [int]      Specifies output image size. (Default: 1024)\n"
-		"  -o [filename]    Manually specifies output file. (Default: \"<input_prefix>_spheremap.bmp\")\n"
+		"  -size <int>      Specifies output image size. (Default: 1024)\n"
+		"  -o <filename>    Manually specifies output file. (Default: \"<input_prefix>_spheremap.bmp\")\n"
 		"  -h / -help       Print this help text.\n"
 		"\n";
 }
