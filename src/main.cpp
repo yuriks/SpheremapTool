@@ -4,6 +4,7 @@
 #include <string>
 #include <cassert>
 #include <vector>
+#include <iterator>
 
 #include "stb_image.hpp"
 #include "stb_image_write.hpp"
@@ -123,13 +124,42 @@ inline void splitColor(u32 col, u8& r, u8& g, u8& b) {
 	b = col >> 16 & 0xFF;
 }
 
+template <typename T>
+inline typename T::value_type pop_from(T& container) {
+	T::value_type val = container.back();
+	container.pop_back();
+	return val;
+}
+
 int main(int argc, char* argv[]) {
-	if (argc != 4)
+	if (argc < 1)
 		return 1;
 
-	std::string fname_prefix = argv[1];
-	std::string fname_extension = argv[2];
-	int output_size = std::stoi(argv[3]);
+	int output_size = 1024;
+	std::vector<std::string> positional_params;
+
+	{
+		std::vector<std::string> input_params(std::reverse_iterator<char**>(argv+argc), std::reverse_iterator<char**>(argv+1));
+
+		while (!input_params.empty()) {
+			std::string opt = pop_from(input_params);
+
+			if (opt == "-") {
+				std::copy(input_params.rbegin(), input_params.rend(), std::back_inserter(positional_params));
+				break;
+			} else if (opt == "-size") {
+				output_size = std::stoi(pop_from(input_params));
+			} else {
+				positional_params.push_back(opt);
+			}
+		}
+	}
+
+	if (positional_params.size() != 2)
+		return 1;
+
+	std::string fname_prefix = positional_params[0];
+	std::string fname_extension = positional_params[1];
 	std::string output_fname = fname_prefix + "_spheremap.bmp";
 
 	std::vector<u32> out_data(output_size * output_size);
