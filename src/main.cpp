@@ -1,12 +1,12 @@
-#include <memory>
+#include <cassert>
+#include <cmath>
 #include <cstdint>
 #include <functional>
-#include <string>
-#include <cassert>
-#include <vector>
-#include <iterator>
 #include <iostream>
-#include <cmath>
+#include <iterator>
+#include <memory>
+#include <string>
+#include <vector>
 
 #include "stb_image.hpp"
 #include "stb_image_write.hpp"
