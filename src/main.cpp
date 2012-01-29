@@ -5,6 +5,7 @@
 #include <cassert>
 #include <vector>
 #include <iterator>
+#include <iostream>
 
 #include "stb_image.hpp"
 #include "stb_image_write.hpp"
@@ -131,9 +132,24 @@ inline typename T::value_type pop_from(T& container) {
 	return val;
 }
 
+void printProgramUsage() {
+	std::cerr <<
+		"SpheremapTool v.GIT\n"
+		"\n"
+		"Usage:\n"
+		"  SpheremapTool [opts] [-] input_prefix input_extension\n"
+		"\n"
+		"Available options:\n"
+		"  -size [int]      Specifies output image size. (Default: 1024)\n"
+		"  -h / -help       Print this help text.\n"
+		"\n";
+}
+
 int main(int argc, char* argv[]) {
-	if (argc < 1)
+	if (argc < 1) {
+		printProgramUsage();
 		return 1;
+	}
 
 	int output_size = 1024;
 	std::vector<std::string> positional_params;
@@ -149,14 +165,19 @@ int main(int argc, char* argv[]) {
 				break;
 			} else if (opt == "-size") {
 				output_size = std::stoi(pop_from(input_params));
+			} else if (opt == "-h" || opt == "-help") {
+				printProgramUsage();
+				return 0;
 			} else {
 				positional_params.push_back(opt);
 			}
 		}
 	}
 
-	if (positional_params.size() != 2)
+	if (positional_params.size() != 2) {
+		printProgramUsage();
 		return 1;
+	}
 
 	std::string fname_prefix = positional_params[0];
 	std::string fname_extension = positional_params[1];
