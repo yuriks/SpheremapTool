@@ -141,6 +141,7 @@ void printProgramUsage() {
 		"\n"
 		"Available options:\n"
 		"  -size [int]      Specifies output image size. (Default: 1024)\n"
+		"  -o [filename]    Manually specifies output file. (Default: \"<input_prefix>_spheremap.bmp\")\n"
 		"  -h / -help       Print this help text.\n"
 		"\n";
 }
@@ -152,6 +153,7 @@ int main(int argc, char* argv[]) {
 	}
 
 	int output_size = 1024;
+	std::string output_fname;
 	std::vector<std::string> positional_params;
 
 	{
@@ -166,6 +168,8 @@ int main(int argc, char* argv[]) {
 					break;
 				} else if (opt == "-size") {
 					output_size = std::stoi(pop_from(input_params));
+				} else if (opt == "-o") {
+					output_fname = pop_from(input_params);
 				} else if (opt == "-h" || opt == "-help") {
 					printProgramUsage();
 					return 0;
@@ -186,7 +190,8 @@ int main(int argc, char* argv[]) {
 
 	std::string fname_prefix = positional_params[0];
 	std::string fname_extension = positional_params[1];
-	std::string output_fname = fname_prefix + "_spheremap.bmp";
+	if (output_fname.empty())
+		output_fname = fname_prefix + "_spheremap.bmp";
 
 	std::vector<u32> out_data(output_size * output_size);
 	float output_pixel_size = 1.f / output_size;
