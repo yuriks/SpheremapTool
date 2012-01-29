@@ -141,11 +141,21 @@ void printProgramUsage() {
 		"  SpheremapTool [opts] [-] input_prefix input_extension\n"
 		"\n"
 		"Available options:\n"
+		"  -aa 1|5          Specify number of AA samples. (Default: 1)\n"
 		"  -size <int>      Specifies output image size. (Default: 1024)\n"
 		"  -o <filename>    Manually specifies output file. (Default: \"<input_prefix>_spheremap.bmp\")\n"
 		"  -h / -help       Print this help text.\n"
 		"\n";
 }
+
+static const float aa_pattern_none[] = { 0.f, 0.f };
+static const float aa_pattern_5x[] = {
+	0.0f   , 0.0f   ,
+	-.1875f, -.375f ,
+	0.375f , -.1875f,
+	0.1875f, 0.375f ,
+	-.375f , 0.1875f,
+};
 
 int main(int argc, char* argv[]) {
 	if (argc < 1) {
@@ -153,6 +163,8 @@ int main(int argc, char* argv[]) {
 		return 1;
 	}
 
+	int num_aa_samples = 1;
+	const float* aa_sample_pattern = aa_pattern_none;
 	int output_size = 1024;
 	std::string output_fname;
 	std::vector<std::string> positional_params;
@@ -167,6 +179,17 @@ int main(int argc, char* argv[]) {
 				if (opt == "-") {
 					std::copy(input_params.rbegin(), input_params.rend(), std::back_inserter(positional_params));
 					break;
+				} else if (opt == "-aa") {
+					num_aa_samples = std::stoi(pop_from(input_params));
+					switch (num_aa_samples) {
+					case 1:
+						aa_sample_pattern = aa_pattern_none; break;
+					case 5:
+						aa_sample_pattern = aa_pattern_5x; break;
+					default:
+						std::cerr << "Invalid AA sample pattern.\n";
+						return 1;
+					}
 				} else if (opt == "-size") {
 					output_size = std::stoi(pop_from(input_params));
 				} else if (opt == "-o") {
@@ -202,23 +225,14 @@ int main(int argc, char* argv[]) {
 
 		for (int y = 0; y < output_size; ++y) {
 			for (int x = 0; x < output_size; ++x) {
-				static const int NUM_SAMPLES = 5;
-				static const float sample_offsets[NUM_SAMPLES*2] = {
-					0.0f   , 0.0f   ,
-					-.1875f, -.375f ,
-					0.375f , -.1875f,
-					0.1875f, 0.375f ,
-					-.375f , 0.1875f,
-				};
-
 				float center_s = unlerp(x, output_size);
 				float center_t = unlerp(y, output_size);
 
 				u32 sample_r = 0, sample_g = 0, sample_b = 0;
 
-				for (int sample = 0; sample < NUM_SAMPLES; ++sample) {
-					float s = center_s + sample_offsets[sample*2 + 0] * output_pixel_size;
-					float t = center_t + sample_offsets[sample*2 + 1] * output_pixel_size;
+				for (int sample = 0; sample < num_aa_samples; ++sample) {
+					float s = center_s + aa_sample_pattern[sample*2 + 0] * output_pixel_size;
+					float t = center_t + aa_sample_pattern[sample*2 + 1] * output_pixel_size;
 
 					float vx, vy, vz;
 					float rev_p = 16.0f * (s - s*s + t - t*t) - 4.0f;
@@ -245,9 +259,9 @@ int main(int argc, char* argv[]) {
 					sample_b += b;
 				}
 
-				sample_r /= NUM_SAMPLES;
-				sample_g /= NUM_SAMPLES;
-				sample_b /= NUM_SAMPLES;
+				sample_r /= num_aa_samples;
+				sample_g /= num_aa_samples;
+				sample_b /= num_aa_samples;
 
 				out_data[y * output_size + x] = makeColor(sample_r, sample_g, sample_b);
 			}
