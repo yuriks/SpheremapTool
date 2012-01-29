@@ -14,6 +14,20 @@
 typedef uint8_t u8;
 typedef uint32_t u32;
 
+inline void splitColor(u32 col, u8& r, u8& g, u8& b) {
+	r = col >> 0  & 0xFF;
+	g = col >> 8  & 0xFF;
+	b = col >> 16 & 0xFF;
+}
+
+inline u32 makeColor(u8 r, u8 g, u8 b) {
+	return r | g << 8 | b << 16 | 0xFF << 24;
+}
+
+inline float lerp(float a, float b, float t) {
+	return a * (1.f - t) + b * t;
+}
+
 struct Image {
 	int width, height;
 	std::unique_ptr<u8, std::function<void(u8*)>> data;
@@ -36,6 +50,35 @@ struct Image {
 
 private:
 	Image& operator= (const Image&);
+};
+
+struct Colorf {
+	float r, g, b;
+
+	Colorf() { }
+	Colorf(float r, float g, float b) : r(r), g(g), b(b) { }
+
+	explicit Colorf(u32 col) {
+		u8 rb, gb, bb;
+		splitColor(col, rb, gb, bb);
+		r = rb / 255.f;
+		g = gb / 255.f;
+		b = bb / 255.f;
+	}
+
+	u32 toU32() const {
+		return makeColor(
+			static_cast<u8>(r * 255),
+			static_cast<u8>(g * 255),
+			static_cast<u8>(b * 255));
+	}
+
+	static Colorf mix(const Colorf& a, const Colorf& b, float t) {
+		return Colorf(
+			lerp(a.r, b.r, t),
+			lerp(a.g, b.g, t),
+			lerp(a.b, b.b, t));
+	}
 };
 
 struct Cubemap {
@@ -102,28 +145,40 @@ struct Cubemap {
 		out_t = 0.5f * (tmp_t / m + 1.0f);
 	}
 
+	u32 readTexelClamped(CubeFace face, int x, int y) {
+		const Image& face_img = faces[face];
+
+		x = std::max(std::min(x, face_img.width  - 1), 0);
+		y = std::max(std::min(y, face_img.height - 1), 0);
+		return readTexel(face, x, y);
+	}
+
 	u32 sampleFace(CubeFace face, float s, float t) {
 		const Image& face_img = faces[face];
 
-		// Point sampling for now
-		int x = std::min(static_cast<int>(s * face_img.width ), face_img.width  - 1);
-		int y = std::min(static_cast<int>(t * face_img.height), face_img.height - 1);
-		return readTexel(face, x, y);
+		const float x = s * face_img.width;
+		const float y = t * face_img.height;
+
+		const int x_base = static_cast<int>(x);
+		const int y_base = static_cast<int>(y);
+		const float x_fract = x - x_base;
+		const float y_fract = y - y_base;
+
+		const Colorf sample_00(readTexelClamped(face, x_base,     y_base));
+		const Colorf sample_10(readTexelClamped(face, x_base + 1, y_base));
+		const Colorf sample_01(readTexelClamped(face, x_base,     y_base + 1));
+		const Colorf sample_11(readTexelClamped(face, x_base + 1, y_base + 1));
+
+		const Colorf mix_0 = Colorf::mix(sample_00, sample_10, x_fract);
+		const Colorf mix_1 = Colorf::mix(sample_01, sample_11, x_fract);
+
+		const Colorf mix_final = Colorf::mix(mix_0, mix_1, y_fract);
+		return mix_final.toU32();
 	}
 };
 
 inline float unlerp(int val, int max) {
 	return (val + 0.5f) / max;
-}
-
-inline u32 makeColor(u8 r, u8 g, u8 b) {
-	return r | g << 8 | b << 16 | 0xFF << 24;
-}
-
-inline void splitColor(u32 col, u8& r, u8& g, u8& b) {
-	r = col >> 0  & 0xFF;
-	g = col >> 8  & 0xFF;
-	b = col >> 16 & 0xFF;
 }
 
 template <typename T>
