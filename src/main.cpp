@@ -113,6 +113,16 @@ inline float unlerp(int val, int max) {
 	return (val + 0.5f) / max;
 }
 
+inline u32 makeColor(u8 r, u8 g, u8 b) {
+	return r | g << 8 | b << 16 | 0xFF << 24;
+}
+
+inline void splitColor(u32 col, u8& r, u8& g, u8& b) {
+	r = col >> 0  & 0xFF;
+	g = col >> 8  & 0xFF;
+	b = col >> 16 & 0xFF;
+}
+
 int main(int argc, char* argv[]) {
 	if (argc != 4)
 		return 1;
@@ -142,7 +152,7 @@ int main(int argc, char* argv[]) {
 				float center_s = unlerp(x, output_size);
 				float center_t = unlerp(y, output_size);
 
-				u32 r = 0, g = 0, b = 0;
+				u32 sample_r = 0, sample_g = 0, sample_b = 0;
 
 				for (int sample = 0; sample < NUM_SAMPLES; ++sample) {
 					float s = center_s + sample_offsets[sample*2 + 0] * output_pixel_size;
@@ -166,16 +176,18 @@ int main(int argc, char* argv[]) {
 					input_cubemap.computeTexCoords(vx, vy, vz, cube_face, tex_s, tex_t);
 					u32 sample_color = input_cubemap.sampleFace(cube_face, tex_s, tex_t);
 
-					r += sample_color >> 0  & 0xFF;
-					g += sample_color >> 8  & 0xFF;
-					b += sample_color >> 16 & 0xFF;
+					u8 r, g, b;
+					splitColor(sample_color, r, g, b);
+					sample_r += r;
+					sample_g += g;
+					sample_b += b;
 				}
 
-				r /= NUM_SAMPLES;
-				g /= NUM_SAMPLES;
-				b /= NUM_SAMPLES;
+				sample_r /= NUM_SAMPLES;
+				sample_g /= NUM_SAMPLES;
+				sample_b /= NUM_SAMPLES;
 
-				out_data[y * output_size + x] = r | g << 8 | b << 16 | 0xFF << 24;
+				out_data[y * output_size + x] = makeColor(sample_r, sample_g, sample_b);
 			}
 		}
 	}
