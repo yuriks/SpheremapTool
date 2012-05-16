@@ -183,7 +183,7 @@ inline float unlerp(int val, int max) {
 
 template <typename T>
 inline typename T::value_type pop_from(T& container) {
-	T::value_type val = container.back();
+	typename T::value_type val = container.back();
 	container.pop_back();
 	return val;
 }
