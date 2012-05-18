@@ -28,7 +28,7 @@ endif
 ############################################################
 
 TARGET := bin/$(TARGET)
-JUNK_DIR := bin/obj-$(CONFIG)
+JUNK_DIR := bin/obj-$(CONFIG)/
 
 STRIP := strip
 
