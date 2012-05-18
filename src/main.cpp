@@ -201,6 +201,7 @@ void printProgramUsage() {
 		"Available options:\n"
 		"  -aa 1|5|16       Specify number of AA samples. (Default: 1)\n"
 		"  -size <int>      Specifies output image size. (Default: 1024)\n"
+		"  -dome            Maps only the front hemisphere. Useful for texturing skydomes.\n"
 		"  -o <filename>    Manually specifies output file. (Default: \"<input_prefix>_spheremap.bmp\")\n"
 		"  -h / -help       Print this help text.\n"
 		"\n";
@@ -246,6 +247,7 @@ int main(int argc, char* argv[]) {
 	int num_aa_samples = 1;
 	const float* aa_sample_pattern = aa_pattern_none;
 	int output_size = 1024;
+	bool dome = false;
 	std::string output_fname;
 	std::vector<std::string> positional_params;
 
@@ -274,6 +276,8 @@ int main(int argc, char* argv[]) {
 					}
 				} else if (opt == "-size") {
 					output_size = std::stoi(pop_from(input_params));
+				} else if (opt == "-dome") {
+					dome = true;
 				} else if (opt == "-o") {
 					output_fname = pop_from(input_params);
 				} else if (opt == "-h" || opt == "-help") {
@@ -317,16 +321,31 @@ int main(int argc, char* argv[]) {
 					float t = center_t + aa_sample_pattern[sample*2 + 1] * output_pixel_size;
 
 					float vx, vy, vz;
-					float rev_p = 16.0f * (s - s*s + t - t*t) - 4.0f;
-					if (rev_p < 0.0f) {
-						vx = 0.0f;
-						vy = 0.0f;
-						vz = -1.0f;
+					if (dome) {
+						float sc = 2.f*s - 1.f;
+						float tc = -(2.f*t - 1.f);
+
+						float vs = std::sqrtf(sc*sc + tc*tc);
+						vx = sc;
+						vy = tc;
+						if (vs > 1.f) {
+							vx = vx/vs;
+							vy = vy/vs;
+						}
+
+						vz = std::sqrtf(std::max(0.f, 1.f - vx*vx - vy*vy));
 					} else {
-						float rev_p_sqrt = std::sqrtf(rev_p);
-						vx = rev_p_sqrt * (2.0f * s - 1.0f);
-						vy = rev_p_sqrt * -(2.0f * t - 1.0f);
-						vz = 8.0f * (s - s*s + t - t*t) - 3.0f;
+						float rev_p = 16.0f * (s - s*s + t - t*t) - 4.0f;
+						if (rev_p < 0.0f) {
+							vx = 0.0f;
+							vy = 0.0f;
+							vz = -1.0f;
+						} else {
+							float rev_p_sqrt = std::sqrtf(rev_p);
+							vx = rev_p_sqrt * (2.0f * s - 1.0f);
+							vy = rev_p_sqrt * -(2.0f * t - 1.0f);
+							vz = 8.0f * (s - s*s + t - t*t) - 3.0f;
+						}
 					}
 
 					Cubemap::CubeFace cube_face;
